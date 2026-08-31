@@ -1,4 +1,5 @@
-# mobius-programming-machine-lang
+# MMLang
+mobius-programming-machine-language
 
 新的机器，以及新的esolang  
 融合了图灵机、冯·诺伊曼机、哈佛架构、BrainFuck，一些有趣的新特性，以及一些奇奇怪怪的东西  
