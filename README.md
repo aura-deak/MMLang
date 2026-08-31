@@ -1,16 +1,19 @@
 # MMLang
+[README_zh-cn.md](./README_zh-cn.md)
+
+
 mobius-programming-machine-language
 
 A new machine, and a new esolang.
 
 It merges the Turing machine, the von Neumann machine, the Harvard architecture, BrainFuck, some interesting new features, and some odd stuff. I created it while exploring the history of computing.
 
-This machine is called the Möbius Machine, and its dedicated programming language is called the Möbius Machine Programming Language.
+This machine is called the Mobius Machine, and its dedicated programming language is called the Mobius Machine Programming Language.
 
 I can hardly believe this thing is Turing-complete. (That's what the big blue fat fish said; I really don't want to verify it myself. If you're interested, feel free to research it.)
 
-## The Möbius Machine
-The Möbius Machine is a modified Turing machine whose read/write head moves bidirectionally over an infinitely long tape of digits.
+## The Mobius Machine
+The Mobius Machine is a modified Turing machine whose read/write head moves bidirectionally over an infinitely long tape of digits.
 
 Instructions are fed in via the tape, which is read only, sequentially, and in one direction. Program looping is achieved by physically connecting the two ends of the tape, and this looping is optional.
 
@@ -22,7 +25,7 @@ Any number of tapes can be inserted into the queue before the program starts; af
 
 It supports truncating the current output tape from the right of the read/write head, and inserting the left portion of the cut tape, taken as a new program tape, into the position immediately after the current tape. At this point the read/write head has no tape above it, so a right-move instruction must be executed.
 
-## The Möbius Machine Programming Language
+## The Mobius Machine Programming Language
 
 | Mnemonic | Binary | Description |
 | :--- | :--- | :--- |
@@ -57,6 +60,3 @@ Output code `0000 0111 0111`, which is `>nn`, i.e. the right side is discarded
 ```
 Hello World in ASCII... (output through the b instruction)
 ```
-
-## Original Chinese README
-[README_zh-cn.md](./README_zh-cn.md)
