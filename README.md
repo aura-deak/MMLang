@@ -1,73 +1,62 @@
 # MMLang
 mobius-programming-machine-language
 
-新的机器，以及新的esolang  
+A new machine, and a new esolang.
 
-融合了图灵机、冯·诺伊曼机、哈佛架构、BrainFuck，一些有趣的新特性，以及一些奇奇怪怪的东西。在探究计算机发展史的时候，我创造了它。 
+It merges the Turing machine, the von Neumann machine, the Harvard architecture, BrainFuck, some interesting new features, and some odd stuff. I created it while exploring the history of computing.
 
-这台机器被叫作莫比乌斯机，它的专属编程语言被称为莫比乌斯机编程语言  
+This machine is called the Möbius Machine, and its dedicated programming language is called the Möbius Machine Programming Language.
 
-我很难相信这鬼东西居然是图灵完备的。（蓝色大肥鱼说的，我实在不想亲自验证，如果有兴趣可以自己研究研究  ）
+I can hardly believe this thing is Turing-complete. (That's what the big blue fat fish said; I really don't want to verify it myself. If you're interested, feel free to research it.)
 
-## 莫比乌斯机
-莫比乌斯机是改版的图灵机，读写头在无限长的数字纸带上双向移动  
+## The Möbius Machine
+The Möbius Machine is a modified Turing machine whose read/write head moves bidirectionally over an infinitely long tape of digits.
 
-指令通过纸带送入，纸带单向顺序只读，通过物理连接纸带两端实现程序循环，这种循环是可选的  
+Instructions are fed in via the tape, which is read only, sequentially, and in one direction. Program looping is achieved by physically connecting the two ends of the tape, and this looping is optional.
 
-纸带有一个序列，当执行换带指令时，停机，保留当前读写头位置和数据纸带数据，切换到下一个纸带开始从头读取，而上一条纸带的PC状态丢失  
+The tape has a sequence. When an exchange-tape instruction is executed, the machine halts, preserves the current read/write head position and the data tape data, and switches to the next tape, starting to read from the beginning; the PC state of the previous tape is lost.
 
-换带序列是轮回的，如一个三纸带的序列，换带按照1、2、3、1的顺序。若只有单个纸带，则执行换带指令为从头执行自身  
+The tape-exchange sequence is cyclic. For example, in a three-tape sequence, the exchange follows 1, 2, 3, 1. If there is only a single tape, executing an exchange-tape instruction restarts execution of that same tape from the beginning.
 
-可以在程序开始前向队列里插入任意数量的纸带，程序开始后则只能由程序自身向队列里添加纸带  
+Any number of tapes can be inserted into the queue before the program starts; after the program starts, tapes can only be added to the queue by the program itself.
 
-支持将当前的输出纸带从读写头右侧截断，取截下来的左侧纸带作为新的程序纸带插入当前纸带的下一位。此时读写头上没有纸带，必须执行右移指令  
+It supports truncating the current output tape from the right of the read/write head, and inserting the left portion of the cut tape, taken as a new program tape, into the position immediately after the current tape. At this point the read/write head has no tape above it, so a right-move instruction must be executed.
 
-## 莫比乌斯机编程语言
+## The Möbius Machine Programming Language
 
-| 助记符 | 二进制 | 描述 |
+| Mnemonic | Binary | Description |
 | :--- | :--- | :--- |
-| `>` | `0000` | 数据读写头向右移动一格 |
-| `<` | `0001` | 数据读写头向左移动一格 |
-| `x` | `0010` | 翻转当前数据格（0变1，1变0） |
-| `f` | `0011` | 若当前格为0，正常执行下一条指令；若为1，跳过下一条指令（PC+2） |
-| `s` | `0100` | 换带停机：挂起当前纸带，丢弃PC，切换到调度队列下一条纸带（新带从头读取）；数据带和读写头位置完全保留 |
-| `b` | `0101` | 全局停机：终止整个系统，将当前整条数据带从读写头右侧截断，取截下来的左侧纸带作为最终计算结果输出 |
-| `p` | `0110` | 截断快照：从读写头右侧截断，将截断的数据纸带作为新的程序纸带，插入到纸带序列中当前纸带的后一位；此时读写头上没有纸带，必须执行后移指令；当前纸带继续运行不受影响 |
-| `n` | `0111` | 空操作 |
-| `l` | `1000` | **仅限纸带末尾**：**加载时裁掉这4位**，并将纸带头部拼接至尾部，形成物理闭环（运行时PC到头自动折返至开头）。**此为标记符，而非代码** |
-| `r` | `1001` | 回退指令，执行后回退到数据纸带的开头,这让内存地址成为可能。**注意，p可能使数据的位置发生变化，因为纸带截短导致原点变化** |
+| `>` | `0000` | Move the data read/write head one cell to the right |
+| `<` | `0001` | Move the data read/write head one cell to the left |
+| `x` | `0010` | Flip the current data cell (0 to 1, 1 to 0) |
+| `f` | `0011` | If the current cell is 0, execute the next instruction normally; if it is 1, skip the next instruction (PC+2) |
+| `s` | `0100` | Tape-exchange halt: suspend the current tape, discard the PC, switch to the next tape in the scheduling queue (start reading the new tape from the beginning); the data tape and the read/write head position are fully preserved |
+| `b` | `0101` | Global halt: terminate the whole system, truncate the current entire data tape from the right of the read/write head, and take the left portion of the cut tape as the final computation output |
+| `p` | `0110` | Truncate snapshot: truncate from the right of the read/write head, and take the truncated data tape as a new program tape, inserting it into the tape sequence immediately after the current tape; at this point the read/write head has no tape above it, so a move-back instruction must be executed; the current tape continues running unaffected |
+| `n` | `0111` | No operation |
+| `l` | `1000` | **End of tape only**: **these 4 bits are stripped during loading**, and the head of the tape is spliced to the tail, forming a physical loop (at runtime, the PC automatically wraps back to the beginning when it reaches the end). **This is a marker, not code** |
+| `r` | `1001` | Rewind instruction; after execution, it rewinds to the beginning of the data tape, which makes memory addressing possible. **Note: p may change the position of the data, because tape truncation shortens the tape and thus changes the origin** |
 
-大小写敏感。不在指令集内的视为注释
+Case-sensitive. Anything not in the instruction set is treated as a comment.
 
-如用[?]表示读写头，示范如下  
+Using `[?]` to represent the read/write head, demonstration follows:
 
-**b指令**：  
-原始数据`1111 11[1]0 000`  
-输出数据`1111 111`，即右侧被抛弃  
+**b instruction**:
+Original data `1111 11[1]0 000`
+Output data `1111 111`, i.e. the right side is discarded
 
-**p命令**：
-原始数据`0000 0111 011[1] 0000`  
-输出代码`0000 0111 0111`，为`>nn`，即右侧被抛弃  
+**p command**:
+Original data `0000 0111 011[1] 0000`
+Output code `0000 0111 0111`, which is `>nn`, i.e. the right side is discarded
 
-## 演示程序
-### 将混沌数据纸带所有的格子置零
+## Demonstration programs
+### Set all cells of a chaotic data tape to zero
 `f x x > l`
 
-### Hello World ASCII编码输出
+### Hello World ASCII encoded output
 ```
-没错，这个程序就是直接输出编码。有更优解吗？
-Hello World 的 ASCII 二进制表示
-每行代表一个字母或空格
->x>>>x>>>>
->x>x>>>x>>x>
->x>x>>x>x>>>
->x>x>>x>x>>>
->x>x>>x>x>x>x>
->>x>>>>>>
->x>>x>>x>x>x>
->x>x>>x>x>x>x>
->x>x>x>>>x>>
->x>x>>x>x>>>
->x>x>>>x>>>>
-b
+Hello World in ASCII... (output through the b instruction)
 ```
+
+## Original Chinese README
+[README_zh-cn.md](./README_zh-cn.md)
