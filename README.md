@@ -58,5 +58,19 @@ Output code `0000 0111 0111`, which is `>nn`, i.e. the right side is discarded
 
 ### Hello World ASCII encoded output
 ```
-Hello World in ASCII... (output through the b instruction)
+That's right—this program simply outputs the encoded values ​​directly. Is there a better solution?
+ASCII binary representation of "Hello World"
+Each line represents a letter or a space.
+>x>>>x>>>>
+>x>x>>>x>>x>
+>x>x>>x>x>>>
+>x>x>>x>x>>>
+>x>x>>x>x>x>x>
+>>x>>>>>>
+>x>>x>>x>x>x>
+>x>x>>x>x>x>x>
+>x>x>x>>>x>>
+>x>x>>x>x>>>
+>x>x>>>x>>>>
+b
 ```
