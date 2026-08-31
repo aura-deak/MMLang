@@ -51,7 +51,7 @@ mobius-programming-machine-language
 
 ## 演示程序
 ### 将混沌数据纸带所有的格子置零
-`x f x > l`
+`f x x > l`
 
 ### Hello World ASCII编码输出
 ```
