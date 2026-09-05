@@ -126,11 +126,27 @@ class VmState:
     def step(self):
         if self.halted:
             return False
-        self.ensure_data_tape()
 
         instr = self.fetch_instr()
         if instr is None:
-            instr = 'l'
+            tape = self.cmd_tapes[self.current_label]
+            tape_len = len(tape) // 4
+            if tape_len == 0:
+                self.expand_data_tape_to(self.dp)
+                self.final_output = bitarray_to_str(self.data_tape[:self.dp])
+                self.halted = True
+                return False
+            last_start = (tape_len - 1) * 4
+            last_bits = tape[last_start:last_start + 4]
+            last_instr = INSTR_DECODE.get(bitarray_to_str(last_bits))
+            if last_instr == 'l':
+                self.current_pc = 0
+                return True
+            else:
+                self.expand_data_tape_to(self.dp)
+                self.final_output = bitarray_to_str(self.data_tape[:self.dp])
+                self.halted = True
+                return False
 
         self.step_count += 1
 
@@ -171,9 +187,8 @@ class VmState:
             self.cmd_tapes[new_label] = snapshot.copy()
             self.tape_pcs[new_label] = 0
             self.queue.insert(self.current_idx + 1, new_label)
-            self.data_tape = self.data_tape[:self.dp]
-            if len(self.data_tape) == 0:
-                self.dp += 1
+            self.data_tape = self.data_tape[self.dp:]
+            self.dp = 0
             self.current_pc += 1
         elif instr == 'n':
             self.current_pc += 1
@@ -183,7 +198,10 @@ class VmState:
             self.dp = 0
             self.current_pc += 1
         else:
-            self.current_pc += 1
+            self.last_error = f'Illegal instruction "{instr}" at tape #{self.current_label}, pc={self.current_pc}'
+            self.halted = True
+            self.final_output = None
+            return False
 
         return True
 

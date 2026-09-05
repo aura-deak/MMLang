@@ -32,7 +32,7 @@ It supports cutting the current output tape from the right side of the read/writ
 | `f` | `0011` | If the current cell is 0, execute the next instruction normally; if 1, skip the next instruction (PC+2) |
 | `s` | `0100` | Tape‑switch halt: suspend the current tape, discard PC, switch to the next tape in the scheduling queue (new tape reads from beginning); data tape and read/write head position are fully preserved |
 | `b` | `0101` | Global halt: terminate the entire system, cut the current entire data tape from the right side of the read/write head, take the left part of the cut tape as the final computation result output |
-| `p` | `0110` | Snapshot cut: cut from the right side of the read/write head, insert the cut data tape as a new program tape immediately after the current tape in the tape sequence; at this time there is no tape on the read/write head, a right‑shift instruction must be executed; the current tape continues running unaffected; if the data tape becomes empty after truncation, dp is automatically incremented by 1 |
+| `p` | `0110` | Snapshot cut: truncate the data tape at the read/write head, use the left portion as a new program tape, insert the new tape immediately after the current tape in the scheduling queue; the remaining data tape is the right portion and the data pointer is reset to zero |
 | `n` | `0111` | No operation |
 | `l` | `1000` | **Only at the end of a tape**: if this instruction appears at the end on a physical machine, these 4 bits should be trimmed off, and the head of the tape should be spliced to the tail to form a physical loop (at runtime, when PC reaches the end it automatically returns to the beginning). In a virtual machine, this instruction is retained and its effect is to reset PC to zero |
 | `r` | `1001` | Rewind instruction: after execution, rewind to the beginning of the data tape, which makes memory addressing possible. **Note: `p` may change the position of data because cutting the tape shortens it and changes the origin** |
@@ -46,8 +46,9 @@ Original data: `1111 11[1]0 000`
 Output data: `1111 111`, i.e., the right side is discarded.
 
 **p instruction**:  
-Original data: `0000 0111 011[1] 0000`  
-Output code: `0000 0111 0111`, i.e., `>nn`, the right side is discarded.
+Original data: `0000 0111 011[1] 1000`  
+Snapshot (new program tape): `0000 0111 0111`, i.e., `>nn`  
+Remaining data tape after execution: `1000`. Because the original dp now points past the end of the truncated tape, dp is automatically reset to zero (read/write head is restored to the beginning of the remaining data tape). Example state after p completes: `[1]000`.
 
 ### Assembly‑time Preprocessing Special Syntax
 
