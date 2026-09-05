@@ -32,7 +32,7 @@ It supports cutting the current output tape from the right side of the read/writ
 | `f` | `0011` | If the current cell is 0, execute the next instruction normally; if 1, skip the next instruction (PC+2) |
 | `s` | `0100` | Tape‑switch halt: suspend the current tape, discard PC, switch to the next tape in the scheduling queue (new tape reads from beginning); data tape and read/write head position are fully preserved |
 | `b` | `0101` | Global halt: terminate the entire system, cut the current entire data tape from the right side of the read/write head, take the left part of the cut tape as the final computation result output |
-| `p` | `0110` | Snapshot cut: cut from the right side of the read/write head, insert the cut data tape as a new program tape immediately after the current tape in the tape sequence; at this time there is no tape on the read/write head, a right‑shift instruction must be executed; the current tape continues running unaffected |
+| `p` | `0110` | Snapshot cut: cut from the right side of the read/write head, insert the cut data tape as a new program tape immediately after the current tape in the tape sequence; at this time there is no tape on the read/write head, a right‑shift instruction must be executed; the current tape continues running unaffected; if the data tape becomes empty after truncation, dp is automatically incremented by 1 |
 | `n` | `0111` | No operation |
 | `l` | `1000` | **Only at the end of a tape**: if this instruction appears at the end on a physical machine, these 4 bits should be trimmed off, and the head of the tape should be spliced to the tail to form a physical loop (at runtime, when PC reaches the end it automatically returns to the beginning). In a virtual machine, this instruction is retained and its effect is to reset PC to zero |
 | `r` | `1001` | Rewind instruction: after execution, rewind to the beginning of the data tape, which makes memory addressing possible. **Note: `p` may change the position of data because cutting the tape shortens it and changes the origin** |
@@ -55,6 +55,84 @@ Output code: `0000 0111 0111`, i.e., `>nn`, the right side is discarded.
 | :--- | :--- |
 | `*` | Repetition syntax. Expanded during preprocessing, e.g., `>*1024` expands to 1024 `>` characters. |
 | `#0` | Tape label, appears in `.mmlang` and `.mmbin` files, used to distinguish tapes. Labels start from 0 and increment. |
+
+## Toolchain Usage
+
+### Dependency Installation
+
+```bash
+pip install bitarray
+```
+
+Only `bitarray` is required as a third‑party library.
+
+### Files
+
+| File | Purpose |
+| :--- | :--- |
+| `asm.py` / `asm_core.py` | Assembler: converts `.mmlang` source to `.mmbin` |
+| `run.py` / `vm_core.py` | Executor: loads `.mmbin` and simulates the machine |
+| `debug.py` | Single‑step debugger: visual tape state, Enter to step |
+| `common.py` | Shared module: instruction encoding table, disassembly table, bitarray helpers |
+| `data_tape_maker.py` | Data tape generator: user‑editable custom initial tape logic |
+
+### Assemble `.mmlang` → `.mmbin`
+
+```bash
+python3 asm.py
+```
+
+Scans the current directory for `.mmlang` files; if exactly one is found, it is assembled directly; if multiple are found, you are prompted to select one by number. Output: a `.mmbin` file with the same name.
+
+Example `.mmlang` source:
+```
+#0
+>x>>>x>*4
+>x>x>>>x>>x>
+b
+```
+
+### Execute `.mmbin`
+
+```bash
+python3 run.py
+```
+
+Scans the current directory for a `.mmbin` file and executes it. When the `b` instruction halts the machine, the truncated binary result sequence is printed.
+
+### Single‑step Debugging
+
+```bash
+python3 debug.py
+```
+
+Each Enter key press executes one instruction. Prints the disassembly state of all program tapes, the data tape, and the current PC / DP values.
+
+### Custom Data Tape
+
+Edit `data_tape_maker.py` and change the return value of `make(dp)` to customise the initial tape logic:
+
+```python
+# Returns the parity of the Fibonacci sequence
+def make(dp):
+    a, b = 0, 1
+    for _ in range(dp):
+        a, b = b, a + b
+    return a % 2
+```
+
+The default implementation returns an all‑zero tape.
+
+### Hello World Example
+
+Save the Hello World source from this README as `hello.mmlang`, then:
+
+```bash
+python3 asm.py    # produces hello.mmbin
+python3 run.py    # executes and prints the bit sequence
+```
+
+The output bit sequence, grouped every 8 bits, corresponds to the ASCII bytes of `Hello World`.
 
 ## Demo Programs
 ### Zero out all cells on a chaotic data tape
