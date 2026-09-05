@@ -1,6 +1,8 @@
 # MMLang
 mobius-programming-machine-language
 
+[中文文档](README_zh-cn.md)
+
 New machine, and new esolang
 
 Integrates Turing machine, von Neumann machine, Harvard architecture, BrainFuck, some interesting new features, and some weird things. I created it while exploring the history of computer development.
