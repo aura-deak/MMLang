@@ -77,7 +77,6 @@ ns
 ### Hello World ASCII编码输出
 ```
 没错，这个程序就是直接输出编码。有更优解吗？
-Hello World 的 ASCII 二进制表示
 每行代表一个字母或空格
 #0
 >x>>>x>*4
