@@ -61,7 +61,9 @@ Output code: `0000 0111 0111`, i.e., `>nn`, the right side is discarded.
 ### Dependency Installation
 
 ```bash
-pip install bitarray
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
 Only `bitarray` is required as a third‑party library.
@@ -75,6 +77,7 @@ Only `bitarray` is required as a third‑party library.
 | `debug.py` | Single‑step debugger: visual tape state, Enter to step |
 | `common.py` | Shared module: instruction encoding table, disassembly table, bitarray helpers |
 | `data_tape_maker.py` | Data tape generator: user‑editable custom initial tape logic |
+| `test/` | Unit tests using Python's stdlib `unittest`; covers all 10 instructions |
 
 ### Assemble `.mmlang` → `.mmbin`
 
@@ -133,6 +136,28 @@ python3 run.py    # executes and prints the bit sequence
 ```
 
 The output bit sequence, grouped every 8 bits, corresponds to the ASCII bytes of `Hello World`.
+
+### Running Tests
+
+Unit tests live under `test/` and use Python's standard `unittest` — no extra dependencies required. They cover the assembler, the executor, all 10 instructions, and edge cases. 60 tests total.
+
+```bash
+# Discover and run all (recommended)
+python3 -m unittest discover -s test
+
+# Run assembler / executor tests separately
+python3 test/test_asm.py
+python3 test/test_vm.py
+
+# Verbose mode
+python3 -m unittest discover -s test -v
+```
+
+When everything passes, expect output like:
+```
+Ran 60 tests in 0.004s
+OK
+```
 
 ## Demo Programs
 ### Zero out all cells on a chaotic data tape

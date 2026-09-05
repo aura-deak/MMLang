@@ -63,7 +63,9 @@ mobius-programming-machine-language
 ### 依赖安装
 
 ```bash
-pip install bitarray
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
 仅需 `bitarray` 一个第三方库。
@@ -77,6 +79,7 @@ pip install bitarray
 | `debug.py` | 单步调试器：可视化纸带状态，Enter 键逐步执行 |
 | `common.py` | 共享模块：指令编码表、反汇编表、bitarray 工具函数 |
 | `data_tape_maker.py` | 数据纸带生成器：用户可自定义初始纸带逻辑 |
+| `test/` | 单元测试：使用 Python 标准 `unittest`，覆盖全部 10 条指令 |
 
 ### 汇编 `.mmlang` → `.mmbin`
 
@@ -135,6 +138,28 @@ python3 run.py    # 执行，输出 bit 序列
 ```
 
 最终输出的 bit 序列每 8 bit 为一个 ASCII 字节，组合起来就是 `Hello World`。
+
+### 运行测试
+
+单元测试位于 `test/` 目录下，使用 Python 标准库 `unittest`，无需安装额外依赖。覆盖汇编器、执行器、全部 10 条指令及边界条件，共 60 个测试用例。
+
+```bash
+# 全部发现并运行（推荐）
+python3 -m unittest discover -s test
+
+# 分别运行汇编器 / 执行器测试
+python3 test/test_asm.py
+python3 test/test_vm.py
+
+# 详细模式
+python3 -m unittest discover -s test -v
+```
+
+如果全部通过，输出类似：
+```
+Ran 60 tests in 0.004s
+OK
+```
 
 ## 演示程序
 ### 将混沌数据纸带所有的格子置零
