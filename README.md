@@ -1,76 +1,92 @@
 # MMLang
-[README_zh-cn.md](./README_zh-cn.md)
-
-
 mobius-programming-machine-language
 
-A new machine, and a new esolang.
+New machine, and new esolang
 
-It merges the Turing machine, the von Neumann machine, the Harvard architecture, BrainFuck, some interesting new features, and some odd stuff. I created it while exploring the history of computing.
+Integrates Turing machine, von Neumann machine, Harvard architecture, BrainFuck, some interesting new features, and some weird things. I created it while exploring the history of computer development.
 
-This machine is called the Mobius Machine, and its dedicated programming language is called the Mobius Machine Programming Language.
+This machine is called the Mobius machine, and its dedicated programming language is called the Mobius machine programming language.
 
-I can hardly believe this thing is Turing-complete. (That's what the big blue fat fish said; I really don't want to verify it myself. If you're interested, feel free to research it.)
+I find it hard to believe that this damn thing is Turing complete. (Said by Blue Big Fish; I really don't want to verify it myself, but if you are interested, you can research it on your own.)
 
-## The Mobius Machine
-The Mobius Machine is a modified Turing machine whose read/write head moves bidirectionally over an infinitely long tape of digits.
+## Mobius Machine
+The Mobius machine is a modified Turing machine. The read/write head moves bidirectionally on an infinitely long digital tape.
 
-Instructions are fed in via the tape, which is read only, sequentially, and in one direction. Program looping is achieved by physically connecting the two ends of the tape, and this looping is optional.
+Instructions are fed through the tape; the tape is unidirectional and sequential, read-only. Program looping is achieved by physically connecting the two ends of the tape; this looping is optional.
 
-The tape has a sequence. When an exchange-tape instruction is executed, the machine halts, preserves the current read/write head position and the data tape data, and switches to the next tape, starting to read from the beginning; the PC state of the previous tape is lost.
+The tape has a sequence. When a tape‑switch instruction is executed, the machine halts, retains the current read/write head position and data tape data, switches to the next tape in the scheduling queue and starts reading from the beginning, while the PC state of the previous tape is discarded.
 
-The tape-exchange sequence is cyclic. For example, in a three-tape sequence, the exchange follows 1, 2, 3, 1. If there is only a single tape, executing an exchange-tape instruction restarts execution of that same tape from the beginning.
+The tape‑switch sequence is cyclic. For example, with three tapes, switching follows the order 1, 2, 3, 1. If there is only a single tape, executing the tape‑switch instruction means restarting from the beginning of the same tape.
 
-Any number of tapes can be inserted into the queue before the program starts; after the program starts, tapes can only be added to the queue by the program itself.
+Before the program starts, any number of tapes can be inserted into the queue. After the program starts, only the program itself can add tapes to the queue.
 
-It supports truncating the current output tape from the right of the read/write head, and inserting the left portion of the cut tape, taken as a new program tape, into the position immediately after the current tape. At this point the read/write head has no tape above it, so a right-move instruction must be executed.
+It supports cutting the current output tape from the right side of the read/write head, taking the left part of the cut tape as a new program tape and inserting it after the current tape in the sequence. At this time, there is no tape on the read/write head, and a right‑shift instruction must be executed.
 
-## The Mobius Machine Programming Language
+## Mobius Machine Programming Language
 
 | Mnemonic | Binary | Description |
 | :--- | :--- | :--- |
-| `>` | `0000` | Move the data read/write head one cell to the right |
-| `<` | `0001` | Move the data read/write head one cell to the left |
-| `x` | `0010` | Flip the current data cell (0 to 1, 1 to 0) |
-| `f` | `0011` | If the current cell is 0, execute the next instruction normally; if it is 1, skip the next instruction (PC+2) |
-| `s` | `0100` | Tape-exchange halt: suspend the current tape, discard the PC, switch to the next tape in the scheduling queue (start reading the new tape from the beginning); the data tape and the read/write head position are fully preserved |
-| `b` | `0101` | Global halt: terminate the whole system, truncate the current entire data tape from the right of the read/write head, and take the left portion of the cut tape as the final computation output |
-| `p` | `0110` | Truncate snapshot: truncate from the right of the read/write head, and take the truncated data tape as a new program tape, inserting it into the tape sequence immediately after the current tape; at this point the read/write head has no tape above it, so a move-back instruction must be executed; the current tape continues running unaffected |
+| `>` | `0000` | Move data read/write head one cell to the right |
+| `<` | `0001` | Move data read/write head one cell to the left |
+| `x` | `0010` | Flip the current data cell (0 becomes 1, 1 becomes 0) |
+| `f` | `0011` | If the current cell is 0, execute the next instruction normally; if 1, skip the next instruction (PC+2) |
+| `s` | `0100` | Tape‑switch halt: suspend the current tape, discard PC, switch to the next tape in the scheduling queue (new tape reads from beginning); data tape and read/write head position are fully preserved |
+| `b` | `0101` | Global halt: terminate the entire system, cut the current entire data tape from the right side of the read/write head, take the left part of the cut tape as the final computation result output |
+| `p` | `0110` | Snapshot cut: cut from the right side of the read/write head, insert the cut data tape as a new program tape immediately after the current tape in the tape sequence; at this time there is no tape on the read/write head, a right‑shift instruction must be executed; the current tape continues running unaffected |
 | `n` | `0111` | No operation |
-| `l` | `1000` | **End of tape only**: **these 4 bits are stripped during loading**, and the head of the tape is spliced to the tail, forming a physical loop (at runtime, the PC automatically wraps back to the beginning when it reaches the end). **This is a marker, not code** |
-| `r` | `1001` | Rewind instruction; after execution, it rewinds to the beginning of the data tape, which makes memory addressing possible. **Note: p may change the position of the data, because tape truncation shortens the tape and thus changes the origin** |
+| `l` | `1000` | **Only at the end of a tape**: if this instruction appears at the end on a physical machine, these 4 bits should be trimmed off, and the head of the tape should be spliced to the tail to form a physical loop (at runtime, when PC reaches the end it automatically returns to the beginning). In a virtual machine, this instruction is retained and its effect is to reset PC to zero |
+| `r` | `1001` | Rewind instruction: after execution, rewind to the beginning of the data tape, which makes memory addressing possible. **Note: `p` may change the position of data because cutting the tape shortens it and changes the origin** |
 
-Case-sensitive. Anything not in the instruction set is treated as a comment.
+Case‑sensitive. Anything not in the instruction set is treated as a comment.
 
-Using `[?]` to represent the read/write head, demonstration follows:
+Use `[?]` to denote the read/write head; examples are shown below.
 
-**b instruction**:
-Original data `1111 11[1]0 000`
-Output data `1111 111`, i.e. the right side is discarded
+**b instruction**:  
+Original data: `1111 11[1]0 000`  
+Output data: `1111 111`, i.e., the right side is discarded.
 
-**p command**:
-Original data `0000 0111 011[1] 0000`
-Output code `0000 0111 0111`, which is `>nn`, i.e. the right side is discarded
+**p instruction**:  
+Original data: `0000 0111 011[1] 0000`  
+Output code: `0000 0111 0111`, i.e., `>nn`, the right side is discarded.
 
-## Demonstration programs
-### Set all cells of a chaotic data tape to zero
-`f x x > l`
+### Assembly‑time Preprocessing Special Syntax
 
-### Hello World ASCII encoded output
+| Symbol | Purpose |
+| :--- | :--- |
+| `*` | Repetition syntax. Expanded during preprocessing, e.g., `>*1024` expands to 1024 `>` characters. |
+| `#0` | Tape label, appears in `.mmlang` and `.mmbin` files, used to distinguish tapes. Labels start from 0 and increment. |
+
+## Demo Programs
+### Zero out all cells on a chaotic data tape
 ```
-That's right—this program simply outputs the encoded values ​​directly. Is there a better solution?
-ASCII binary representation of "Hello World"
-Each line represents a letter or a space.
->x>>>x>>>>
+#0
+f x x > l
+```
+
+### Simple two‑tape infinite loop demo
+Used to demonstrate multi‑tape writing and the `s` instruction.
+```
+#0
+ns
+#1
+ns
+```
+
+### Hello World ASCII Encoding Output
+```
+YES, THIS PROGRAM OUTPUTS THE ENCODING DIRECTLY. IS THERE A BETTER SOLUTION?
+EACH LINE REPRESENTS A LETTER OR SPACE.
+#0
+>x>>>x>*4
 >x>x>>>x>>x>
 >x>x>>x>x>>>
 >x>x>>x>x>>>
 >x>x>>x>x>x>x>
->>x>>>>>>
+>>x>*6
 >x>>x>>x>x>x>
 >x>x>>x>x>x>x>
 >x>x>x>>>x>>
 >x>x>>x>x>>>
->x>x>>>x>>>>
+>x>x>>>x>*4
 b
 ```
