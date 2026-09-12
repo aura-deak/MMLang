@@ -16,9 +16,9 @@ pip install -r requirements.txt
 | :----------------------- | :--------------------------------------- |
 | `asm.py` / `asm_core.py` | 汇编器：将 `.mmlang` 源码转换为 `.mmbin`           |
 | `run.py` / `vm_core.py`  | 执行器：加载 `.mmbin` 并模拟运行                    |
-| `debug.py`               | 单步调试器：可视化纸带状态，Enter 键逐步执行                |
+| `debug.py`               | 单步调试器：可视化程序纸带状态，Enter 键逐步执行                |
 | `common.py`              | 共享模块：指令编码表、反汇编表、bitarray 工具函数            |
-| `data_tape_maker.py`     | 数据纸带生成器：用户可自定义初始纸带逻辑                     |
+| `data_tape_maker.py`     | 数据纸带生成器：用户可自定义初始数据纸带逻辑                     |
 | `test/`                  | 单元测试：使用 Python 标准 `unittest`，覆盖全部 10 条指令 |
 
 ## 汇编 `.mmlang` → `.mmbin`
