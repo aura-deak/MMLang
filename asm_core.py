@@ -50,6 +50,7 @@ def parse_mmlang(text):
             tapes[current_label] = ''.join(current_chars)
 
     for line in text.split('\n'):
+        line = line.split('//', 1)[0]
         stripped = line.strip()
         if not stripped:
             continue
