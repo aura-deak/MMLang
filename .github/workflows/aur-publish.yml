@@ -1,0 +1,180 @@
+name: Publish to AUR
+
+on:
+  push:
+    tags:
+      - 'v*'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish (e.g. v1.0.0.1). Leave empty to use latest tag'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  aur-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          set -e
+          if [ -n "${{ inputs.tag }}" ]; then
+            TAG="${{ inputs.tag }}"
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+          elif [[ "${GITHUB_EVENT_NAME}" == "release" ]]; then
+            TAG="${{ github.event.release.tag_name }}"
+          else
+            TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0.1")
+          fi
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Detected tag: $TAG -> version: $VERSION"
+
+      - name: Update PKGBUILD and regenerate .SRCINFO
+        run: |
+          set -e
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG="${{ steps.version.outputs.tag }}"
+          echo "Updating PKGBUILD to $VERSION (tag $TAG)"
+
+          sed -i "s/^pkgver=.*/pkgver=$VERSION/" PKGBUILD
+          sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
+
+          TARBALL_URL="https://github.com/aura-deak/MMLang/archive/refs/tags/${TAG}.tar.gz"
+          echo "Downloading $TARBALL_URL"
+          curl -L -o /tmp/source.tar.gz "$TARBALL_URL"
+          SHA256=$(sha256sum /tmp/source.tar.gz | awk '{print $1}')
+          echo "SHA256: $SHA256"
+          sed -i "s/^sha256sums=.*/sha256sums=('$SHA256')/" PKGBUILD
+
+          echo "Updated PKGBUILD:"
+          cat PKGBUILD
+
+          # Generate .SRCINFO without Arch/makepkg (pure bash, no binary build)
+          PKGVER=$(grep -E '^pkgver=' PKGBUILD | cut -d= -f2)
+          PKGREL=$(grep -E '^pkgrel=' PKGBUILD | cut -d= -f2)
+          PKGDESC=$(grep -E '^pkgdesc=' PKGBUILD | sed -E 's/^pkgdesc="(.*)"/\1/')
+          URL=$(grep -E '^url=' PKGBUILD | sed -E 's/^url="(.*)"/\1/')
+
+          cat > .SRCINFO <<EOF
+          pkgbase = mmlang
+          \tpkgdesc = $PKGDESC
+          \tpkgver = $PKGVER
+          \tpkgrel = $PKGREL
+          \turl = $URL
+          \tarch = any
+          \tlicense = Apache-2.0
+          \tdepends = python
+          \tdepends = python-bitarray
+          \tprovides = mmlang
+          \tconflicts = mmlang-git
+          \tsource = mmlang-$PKGVER.tar.gz::https://github.com/aura-deak/MMLang/archive/refs/tags/v$PKGVER.tar.gz
+          \tsha256sums = $SHA256
+
+          pkgname = mmlang
+          EOF
+          echo "Generated .SRCINFO:"
+          cat .SRCINFO
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global --add safe.directory "$PWD"
+
+      - name: Setup SSH for AUR
+        env:
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        run: |
+          set -e
+          if [ -z "$AUR_SSH_PRIVATE_KEY" ]; then
+            echo "::warning::AUR_SSH_PRIVATE_KEY secret not set - skipping AUR push (dry-run mode)"
+            echo "DRY_RUN=true" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          mkdir -p ~/.ssh
+          echo "$AUR_SSH_PRIVATE_KEY" > ~/.ssh/aur
+          chmod 600 ~/.ssh/aur
+          ssh-keyscan -H aur.archlinux.org >> ~/.ssh/known_hosts 2>/dev/null
+          cat > ~/.ssh/config <<'EOF'
+          Host aur.archlinux.org
+            IdentityFile ~/.ssh/aur
+            User aur
+            StrictHostKeyChecking yes
+          EOF
+          chmod 600 ~/.ssh/config
+          ssh -T aur@aur.archlinux.org help || true
+          echo "DRY_RUN=false" >> "$GITHUB_ENV"
+
+      - name: Push to AUR
+        if: env.DRY_RUN == 'false'
+        run: |
+          set -e
+          rm -rf /tmp/aur
+          if git clone ssh://aur@aur.archlinux.org/mmlang.git /tmp/aur 2>&1; then
+            echo "Cloned existing AUR repo"
+          else
+            echo "AUR repo not exist or empty, initializing"
+            mkdir -p /tmp/aur
+            cd /tmp/aur
+            git init
+            git remote add origin ssh://aur@aur.archlinux.org/mmlang.git
+          fi
+          cp "$GITHUB_WORKSPACE/PKGBUILD" /tmp/aur/PKGBUILD
+          cp "$GITHUB_WORKSPACE/.SRCINFO" /tmp/aur/.SRCINFO
+          cd /tmp/aur
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add PKGBUILD .SRCINFO
+          if git diff --cached --quiet; then
+            echo "No changes to push to AUR"
+            exit 0
+          fi
+          VERSION="${{ steps.version.outputs.version }}"
+          git commit -m "Update to $VERSION"
+          git push origin HEAD:master
+
+      - name: Dry-run summary
+        if: env.DRY_RUN == 'true'
+        run: |
+          echo "::notice::DRY RUN - PKGBUILD and .SRCINFO were updated but not pushed to AUR"
+          echo "To enable real push, configure secrets.AUR_SSH_PRIVATE_KEY"
+          echo "See doc/aur-publish.md for setup instructions"
+          echo ""
+          echo "Generated PKGBUILD:"
+          cat PKGBUILD
+          echo ""
+          echo "Generated .SRCINFO:"
+          cat .SRCINFO
+
+      - name: Commit updated PKGBUILD/.SRCINFO back to repo
+        if: env.DRY_RUN == 'false'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          if git diff --quiet PKGBUILD .SRCINFO 2>/dev/null; then
+            echo "No changes to commit back"
+            exit 0
+          fi
+          git add PKGBUILD .SRCINFO
+          VERSION="${{ steps.version.outputs.version }}"
+          git commit -m "chore(aur): bump pkgver to $VERSION [skip ci]" || true
+          if git rev-parse --abbrev-ref HEAD | grep -q "HEAD"; then
+            echo "Detached HEAD (tag build), skipping push back to repo"
+            exit 0
+          fi
+          git push origin HEAD || echo "::warning::Failed to push updated PKGBUILD back to repo (check branch permissions)"

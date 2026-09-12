@@ -2,3 +2,9 @@
 __pycache__/
 *.mmbin
 *.mmlang
+
+# AUR / makepkg
+*.pkg.tar.zst
+*.pkg.tar.xz
+src/
+pkg/
