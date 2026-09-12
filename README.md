@@ -19,5 +19,6 @@ MMLang相比其他的esolang最大的不同在于，**它的困难不是被设�
 - [高级特性、高级编程技巧](doc/advanced.md)
 - [程序示例](doc/examples.md)
 - [工具链的单元测试](doc/test.md)
+- [MMLang 图灵完备性验证报告（AI）](doc/turing-completeness.md)
 
 **必读**：MMLang指令集与语法、工具链用法
