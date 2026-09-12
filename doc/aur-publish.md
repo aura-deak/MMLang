@@ -6,7 +6,7 @@
 
 - `PKGBUILD` (`/PKGBUILD:1`)：`pkgname=mmlang`，`source` 拉取 `https://github.com/aura-deak/MMLang/archive/refs/tags/v$pkgver.tar.gz`，`depends=('python' 'python-bitarray')`（`PKGBUILD:9`），`package()` 将 `common.py/asm_core.py/vm_core.py` 等安装至 `/usr/share/mmlang` 并创建 `/usr/bin/mmlang-asm|run|debug`。
 - `.SRCINFO` (`/.SRCINFO:1`)：AUR 元数据，由工作流从 `PKGBUILD` 解析生成（无需 `makepkg`），随 `PKGBUILD` 同步更新。
-- 工作流 `.github/workflows/aur-publish.yml`：监听 `v*` 标签、`release: published` 和 `workflow_dispatch`，仅做版本/哈希更新与 AUR 推送。
+- 工作流 `.github/workflows/aur-publish.yml`：仅在 `release: published`（GitHub Release 发布）与 `workflow_dispatch` 时触发，仅做版本/哈希更新与 AUR 推送（`push` 标签不再直接触发）。
 
 ## 首次发布（创建 AUR 包）
 
@@ -44,9 +44,10 @@ git commit -am "feat: ..."
 git push origin main
 git tag v1.0.0.2 -m "Release v1.0.0.2"
 git push origin v1.0.0.2
-# 或创建 GitHub Release（同 tag）
+# 然后在 GitHub 创建 Release（选择同名 tag v1.0.0.2 → Publish release）才会触发 AUR 同步
+# 单独推送 tag 不会触发（工作流已改为 on: release）
 
-# 工作流将：
+# 工作流在 Release 发布后将：
 # - 下载 https://github.com/aura-deak/MMLang/archive/refs/tags/v1.0.0.2.tar.gz
 # - 计算 sha256 并更新 PKGBUILD 的 sha256sums
 # - 从 PKGBUILD 生成 .SRCINFO（纯 bash，无需 Arch 容器/makepkg）
@@ -83,7 +84,8 @@ yay -S mmlang
 ## 工作流细节
 
 - 运行环境：`ubuntu-latest`（无 `archlinux` 容器，无 `base-devel/makepkg/namcap`，仅做上传更新）。
-- 版本探测（`aur-publish.yml:22`）：`inputs.tag` > `refs/tags/*` > `release.tag_name` > `git describe`。
+- 触发条件：`on.release.types: [published]`（仅 Release 发布，`push` 标签不触发）+ `workflow_dispatch` 手动输入 tag。
+- 版本探测（`aur-publish.yml:22`）：`inputs.tag` > `release.tag_name` > `refs/tags/*`（兼容手动）> `git describe`。
 - 更新逻辑：`sed` 改 `pkgver/pkgrel`，`curl` 下载 tarball 求 `sha256sum`，`sed` 改 `sha256sums`，再用 bash 从 `PKGBUILD` 解析 `pkgdesc/url/license` 生成 `.SRCINFO`。
 - SSH：`~/.ssh/aur` 私钥 + `ssh-keyscan aur.archlinux.org`，`Host aur.archlinux.org User aur`。
 - 推送：`ssh://aur@aur.archlinux.org/mmlang.git` 的 `master` 分支。
@@ -98,7 +100,7 @@ A: dry-run 模式，配置私钥后重跑。
 A: 检查私钥包含 `BEGIN/END` 全文本、公钥已在 AUR 生效、密钥为 `ed25519`。
 
 **Q: 已推送 tag 但 AUR 未更新？**  
-A: 查看 `Push to AUR` 日志，若 `No changes to push` 说明 `PKGBUILD` 未变化。
+A: 本工作流已改为仅 `release` 触发，单推 tag 不会执行。需在 GitHub 创建 Release（`Releases → Draft a new release → 选择 tag → Publish release`）或使用 `workflow_dispatch` 手动输入 tag。若仍无更新，查看 `Push to AUR` 日志是否 `No changes to push`。
 
 ## 相关文件
 
