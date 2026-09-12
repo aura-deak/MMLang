@@ -42,6 +42,7 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Detected tag: $TAG -> version: $VERSION"
+          echo "Event: $GITHUB_EVENT_NAME Ref: $GITHUB_REF"
 
       - name: Update PKGBUILD and regenerate .SRCINFO
         run: |
@@ -69,25 +70,29 @@ jobs:
           PKGDESC=$(grep -E '^pkgdesc=' PKGBUILD | sed -E 's/^pkgdesc="(.*)"/\1/')
           URL=$(grep -E '^url=' PKGBUILD | sed -E 's/^url="(.*)"/\1/')
 
-          cat > .SRCINFO <<EOF
-          pkgbase = mmlang
-          \tpkgdesc = $PKGDESC
-          \tpkgver = $PKGVER
-          \tpkgrel = $PKGREL
-          \turl = $URL
-          \tarch = any
-          \tlicense = Apache-2.0
-          \tdepends = python
-          \tdepends = python-bitarray
-          \tprovides = mmlang
-          \tconflicts = mmlang-git
-          \tsource = mmlang-$PKGVER.tar.gz::https://github.com/aura-deak/MMLang/archive/refs/tags/v$PKGVER.tar.gz
-          \tsha256sums = $SHA256
+          # Use printf with actual tabs to match makepkg --printsrcinfo format
+          printf 'pkgbase = mmlang\n' > .SRCINFO
+          printf '\tpkgdesc = %s\n' "$PKGDESC" >> .SRCINFO
+          printf '\tpkgver = %s\n' "$PKGVER" >> .SRCINFO
+          printf '\tpkgrel = %s\n' "$PKGREL" >> .SRCINFO
+          printf '\turl = %s\n' "$URL" >> .SRCINFO
+          printf '\tarch = any\n' >> .SRCINFO
+          printf '\tlicense = Apache-2.0\n' >> .SRCINFO
+          printf '\tdepends = python\n' >> .SRCINFO
+          printf '\tdepends = python-bitarray\n' >> .SRCINFO
+          printf '\tprovides = mmlang\n' >> .SRCINFO
+          printf '\tconflicts = mmlang-git\n' >> .SRCINFO
+          printf '\tsource = mmlang-%s.tar.gz::https://github.com/aura-deak/MMLang/archive/refs/tags/v%s.tar.gz\n' "$PKGVER" "$PKGVER" >> .SRCINFO
+          printf '\tsha256sums = %s\n' "$SHA256" >> .SRCINFO
+          printf '\n' >> .SRCINFO
+          printf 'pkgname = mmlang\n' >> .SRCINFO
 
-          pkgname = mmlang
-          EOF
           echo "Generated .SRCINFO:"
+          cat -A .SRCINFO
           cat .SRCINFO
+          # Validate .SRCINFO has mandatory fields
+          grep -q '^pkgbase' .SRCINFO || { echo "ERROR: missing pkgbase"; exit 1; }
+          grep -q $'\tpkgver' .SRCINFO || { echo "ERROR: missing pkgver with tab"; exit 1; }
 
       - name: Configure Git
         run: |
