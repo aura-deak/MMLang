@@ -7,8 +7,9 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
+或
+`yay -S mmlang`
 
-仅需 `bitarray` 一个第三方库。
 
 ### 文件说明
 

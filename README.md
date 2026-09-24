@@ -21,4 +21,29 @@ MMLang相比其他的esolang最大的不同在于，**它的困难不是被设�
 - [工具链的单元测试](doc/test.md)
 - [MMLang 图灵完备性验证报告（AI）](doc/turing-completeness.md)
 
-**必读**：MMLang指令集与语法、工具链用法
+**必读**：MMLang指令集与语法、工具链用法。或阅读下面的文档快速开始。
+
+## Quick Start
+
+将以hello world为例，展示MMLang的基本用法。
+
+### 安装MMLang工具链
+
+```bash
+git clone https://github.com/aura-deak/MMLang.git
+cd MMLang
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+或
+`yay -S mmlang`
+
+### 编译与执行hello world
+
+```bash
+python3 data_tape_maker.py
+# 向程序输入hello world，生成hello_world.mmbin
+python3 asm.py hello_world.mmlang
+python3 run.py hello_world.mmbin
+```
