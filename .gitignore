@@ -1,7 +1,18 @@
 拓展设计.md
 __pycache__/
+*.pyc
 *.mmbin
 *.mmlang
+
+# uv / Python
+.venv/
+*.egg-info/
+build/
+dist/
+
+# test
+.coverage
+.pytest_cache/
 
 # AUR / makepkg
 *.pkg.tar.zst

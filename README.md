@@ -27,23 +27,41 @@ MMLang相比其他的esolang最大的不同在于，**它的困难不是被设�
 
 将以hello world为例，展示MMLang的基本用法。
 
-### 安装MMLang工具链
+### 1. 安装 uv
+
+[uv](https://docs.astral.sh/uv/) 是一个现代的 Python 包管理器，用于依赖管理和环境隔离。
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+### 2. 安装 MMLang 工具链
+
+> [!NOTE]
+> Arch 用户可直接使用 `yay -S mmlang` 并跳过本步骤。
+>
+> 若之前通过 uv 安装过 mmlang，再切换到 yay 方式前请务必先 `uv tool uninstall mmlang`。
+
+将 MMLang 安装为全局命令，可在任何地方直接调用：
 
 ```bash
 git clone https://github.com/aura-deak/MMLang.git
 cd MMLang
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+uv tool install --python-preference only-system .
 ```
-或
-`yay -S mmlang`
 
-### 编译与执行hello world
+安装后即可使用 `mmlang-asm`、`mmlang-run`、`mmlang-debug`、`mmlang-text2mm` 命令。
+
+### 3. 编译与执行 hello world
 
 ```bash
-python3 data_tape_maker.py
-# 向程序输入hello world，生成hello_world.mmbin
-python3 asm.py hello_world.mmlang
-python3 run.py hello_world.mmbin
+mmlang-text2mm       # 输入 hello world，生成 hello_world.mmlang
+mmlang-asm           # 自动发现并汇编，生成 hello_world.mmbin
+mmlang-run           # 执行 .mmbin，打印结果
+```
+
+### 4. 卸载
+
+```bash
+uv tool uninstall mmlang
 ```
