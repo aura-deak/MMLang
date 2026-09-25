@@ -1,7 +1,6 @@
 import os
 import re
 import sys
-import select
 from bitarray import bitarray
 from common import INSTR_DECODE, str_to_bitarray, bitarray_to_str
 
@@ -209,23 +208,24 @@ class VmState:
             self.dp = 0
             self.current_pc += 1
         elif instr == 'a':
-            ch = sys.stdin.read(1)
+            try:
+                text = input('[a] 输入一个字符: ')
+                ch = text[0] if text else '\n'
+            except EOFError:
+                ch = ''
             if ch:
                 self._write_byte(ord(ch))
             else:
                 self._write_byte(0)
             self.current_pc += 1
-        elif instr == 'd':
-            try:
-                ready, _, _ = select.select([sys.stdin], [], [], 0)
-                if ready:
-                    ch = sys.stdin.read(1)
-                    self._write_byte(ord(ch) if ch else 0)
-                else:
-                    self._write_byte(0xFF)
-            except Exception:
-                self._write_byte(0xFF)
-            self.current_pc += 1
+        # elif instr == 'd':
+        #     # TODO: d 指令 (非阻塞检测输入) — 依赖全局键盘监听，当前系统无权限，暂未实现
+        #     # ch = _read_key(timeout=0)
+        #     # if ch:
+        #         self._write_byte(ord(ch))
+        #     else:
+        #         self._write_byte(0xFF)
+        #     self.current_pc += 1
         elif instr == 'c':
             self.expand_data_tape_to(self.dp + 1)
             bit = '1' if self.data_tape[self.dp] else '0'
