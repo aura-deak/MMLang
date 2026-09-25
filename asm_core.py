@@ -5,8 +5,7 @@ from bitarray import bitarray
 
 
 def discover_files(ext, directory='.'):
-    files = sorted(f for f in os.listdir(directory) if f.endswith(ext))
-    return files
+    return sorted(f for f in os.listdir(directory) if f.endswith(ext))
 
 
 def prompt_select(files, label='file'):
@@ -28,8 +27,44 @@ def prompt_select(files, label='file'):
         print(f'Please enter an integer between 0 and {len(files)-1}')
 
 
-def expand_repeat(text):
-    pattern = re.compile(r'([>xfsbpnlr])\*(\d+)')
+def _extract_constants(text):
+    constants = {}
+    body_lines = []
+    for line in text.split('\n'):
+        stripped = line.strip()
+        m = re.fullmatch(r'\$([A-Za-z_-][A-Za-z0-9_-]*)=(\d+)', stripped)
+        if m:
+            constants[m.group(1)] = int(m.group(2))
+        else:
+            body_lines.append(line)
+    result = '\n'.join(body_lines)
+    for name, val in constants.items():
+        result = result.replace('$' + name, str(val))
+    return result
+
+
+def _expand_brackets(text):
+    pattern = re.compile(r'\(([^()]+)\)(\?(\d+))?(\*(\d+))?')
+    prev = None
+    while prev != text:
+        prev = text
+
+        def repl(m):
+            block = m.group(1)
+            enable = m.group(3)
+            count = m.group(5)
+            if enable is not None and enable == '0':
+                return ''
+            if count is None:
+                return block
+            return block * int(count)
+
+        text = pattern.sub(repl, text)
+    return text
+
+
+def _expand_old_repeat(text):
+    pattern = re.compile(r'([>xfsbpnlr!acd])\*(\d+)')
     prev = None
     while prev != text:
         prev = text
@@ -38,8 +73,10 @@ def expand_repeat(text):
 
 
 def parse_mmlang(text):
-    text = expand_repeat(text)
     text = text.replace('\r\n', '\n').replace('\r', '\n')
+    text = _extract_constants(text)
+    text = _expand_brackets(text)
+    text = _expand_old_repeat(text)
 
     tapes = {}
     current_label = None

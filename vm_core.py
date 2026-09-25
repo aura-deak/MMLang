@@ -1,5 +1,7 @@
 import os
 import re
+import sys
+import select
 from bitarray import bitarray
 from common import INSTR_DECODE, str_to_bitarray, bitarray_to_str
 
@@ -75,6 +77,7 @@ class VmState:
         self.dp = 0
         self.halted = False
         self.final_output = None
+        self.stream_output = []
         self.step_count = 0
         self.last_error = None
 
@@ -123,6 +126,13 @@ class VmState:
                 v = 0
             self.data_tape.append(bool(v))
 
+    def _write_byte(self, code):
+        bits = f'{code:08b}'
+        self.expand_data_tape_to(self.dp + 8)
+        for i, b in enumerate(bits):
+            self.data_tape[self.dp + i] = (b == '1')
+        self.dp += 8
+
     def step(self):
         if self.halted:
             return False
@@ -133,7 +143,8 @@ class VmState:
             tape_len = len(tape) // 4
             if tape_len == 0:
                 self.expand_data_tape_to(self.dp)
-                self.final_output = bitarray_to_str(self.data_tape[:self.dp])
+                if self.final_output is None:
+                    self.final_output = bitarray_to_str(self.data_tape[:self.dp])
                 self.halted = True
                 return False
             last_start = (tape_len - 1) * 4
@@ -144,7 +155,8 @@ class VmState:
                 return True
             else:
                 self.expand_data_tape_to(self.dp)
-                self.final_output = bitarray_to_str(self.data_tape[:self.dp])
+                if self.final_output is None:
+                    self.final_output = bitarray_to_str(self.data_tape[:self.dp])
                 self.halted = True
                 return False
 
@@ -178,8 +190,7 @@ class VmState:
             self.expand_data_tape_to(self.dp)
             result = self.data_tape[:self.dp]
             self.final_output = bitarray_to_str(result)
-            self.halted = True
-            return False
+            self.current_pc += 1
         elif instr == 'p':
             self.expand_data_tape_to(self.dp)
             snapshot = self.data_tape[:self.dp]
@@ -197,6 +208,32 @@ class VmState:
         elif instr == 'r':
             self.dp = 0
             self.current_pc += 1
+        elif instr == 'a':
+            ch = sys.stdin.read(1)
+            if ch:
+                self._write_byte(ord(ch))
+            else:
+                self._write_byte(0)
+            self.current_pc += 1
+        elif instr == 'd':
+            try:
+                ready, _, _ = select.select([sys.stdin], [], [], 0)
+                if ready:
+                    ch = sys.stdin.read(1)
+                    self._write_byte(ord(ch) if ch else 0)
+                else:
+                    self._write_byte(0xFF)
+            except Exception:
+                self._write_byte(0xFF)
+            self.current_pc += 1
+        elif instr == 'c':
+            self.expand_data_tape_to(self.dp + 1)
+            bit = '1' if self.data_tape[self.dp] else '0'
+            self.stream_output.append(bit)
+            self.current_pc += 1
+        elif instr == '!':
+            self.halted = True
+            return False
         else:
             self.last_error = f'Illegal instruction "{instr}" at tape #{self.current_label}, pc={self.current_pc}'
             self.halted = True

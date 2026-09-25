@@ -107,7 +107,7 @@ class TestConditionalF(unittest.TestCase):
 
     def test_f_fallthrough_to_b(self):
         set_maker(lambda dp: 0)
-        s = make_state('fb')
+        s = make_state('fb!')
         s.run()
         self.assertTrue(s.halted)
 
@@ -138,22 +138,23 @@ class TestSwitchS(unittest.TestCase):
 
 
 class TestHaltB(unittest.TestCase):
-    def test_halts(self):
+    def test_b_does_not_halt(self):
         set_maker(lambda dp: 0)
-        s = make_state('b')
+        s = make_state('b!')
+        s.step()
+        self.assertFalse(s.halted)
         s.step()
         self.assertTrue(s.halted)
 
     def test_truncates_data_tape(self):
         set_maker(lambda dp: 0)
-        s = make_state('>x>x>b')
-        # dp=3, data_tape = [0,1,1,0,...] → output = data_tape[:3] = "011"
+        s = make_state('>x>x>b!')
         s.run()
         self.assertEqual(s.final_output, '011')
 
     def test_b_output_on_empty_tape(self):
         set_maker(lambda dp: 0)
-        s = make_state('b')
+        s = make_state('b!')
         s.run()
         self.assertEqual(s.final_output, '')
 
@@ -250,19 +251,18 @@ class TestResetR(unittest.TestCase):
 class TestDataTapeMaker(unittest.TestCase):
     def test_default_all_zero(self):
         set_maker(lambda dp: 0)
-        s = make_state('>' * 20)
-        for _ in range(10): s.step()
-        for i in range(len(s.data_tape)):
-            self.assertEqual(bool(s.data_tape[i]), False)
+        s = make_state('>' * 10 + 'x')
+        for _ in range(11): s.step()
+        self.assertEqual(len(s.data_tape), 11)
 
     def test_custom_maker_used(self):
         set_maker(lambda dp: dp % 2)
-        s = make_state('>' * 20)
-        for _ in range(10): s.step()
-        self.assertEqual(bool(s.data_tape[0]), False)
-        self.assertEqual(bool(s.data_tape[1]), True)
-        self.assertEqual(bool(s.data_tape[2]), False)
-        self.assertEqual(bool(s.data_tape[3]), True)
+        s = make_state('>' * 10 + 'x')
+        for _ in range(11): s.step()
+        self.assertEqual(len(s.data_tape), 11)
+        for i in range(10):
+            self.assertEqual(bool(s.data_tape[i]), bool(i % 2))
+        self.assertTrue(bool(s.data_tape[10]))
 
 
 class TestProgramExamples(unittest.TestCase):
@@ -286,7 +286,8 @@ class TestProgramExamples(unittest.TestCase):
 
     def test_hello_world_truncates_to_ascii(self):
         set_maker(lambda dp: 0)
-        src = '#0\n>x>>>x>*4\n>x>x>>>x>>x>\n>x>x>>x>x>>>\n>x>x>>x>x>>>\n>x>x>>x>x>x>x>\n>>x>*6\n>x>>x>>x>x>x>\n>x>x>>x>x>x>x>\n>x>x>x>>>x>>\n>x>x>>x>x>>>\n>x>x>>>x>*4\nb'
+        from text2mm import text_to_mmlang
+        src = text_to_mmlang('Hello World')
         tapes = asm_core.assemble(src)
         import vm_core
         state = vm_core.VmState(tapes)
@@ -306,11 +307,10 @@ class TestProgramExamples(unittest.TestCase):
 class TestEdgeCases(unittest.TestCase):
     def test_instruction_fetched_at_tape_end(self):
         set_maker(lambda dp: 0)
-        s = make_state('nnn')
+        s = make_state('nnnl')
         s.step(); s.step(); s.step()
         self.assertEqual(s.current_pc, 3)
         s.step()
-        # past end → behaves like 'l' → pc=0
         self.assertEqual(s.current_pc, 0)
 
     def test_parse_mmbin_no_consecutive_error(self):

@@ -11,6 +11,10 @@ INSTR_ENCODE = {
     'n': '0111',
     'l': '1000',
     'r': '1001',
+    'a': '1010',
+    'd': '1011',
+    'c': '1100',
+    '!': '1101',
 }
 
 INSTR_DECODE = {v: k for k, v in INSTR_ENCODE.items()}

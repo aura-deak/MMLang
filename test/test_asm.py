@@ -19,6 +19,7 @@ class TestInstructionTable(unittest.TestCase):
             '>': '0000', '<': '0001', 'x': '0010', 'f': '0011',
             's': '0100', 'b': '0101', 'p': '0110', 'n': '0111',
             'l': '1000', 'r': '1001',
+            'a': '1010', 'd': '1011', 'c': '1100', '!': '1101',
         }
         self.assertEqual(INSTR_ENCODE, expected)
 
@@ -29,7 +30,7 @@ class TestInstructionTable(unittest.TestCase):
     def test_roundtrip(self):
         for k, v in INSTR_ENCODE.items():
             self.assertEqual(INSTR_DECODE[v], k)
-        self.assertEqual(len(INSTR_DECODE), 10)
+        self.assertEqual(len(INSTR_DECODE), 14)
 
     def test_valid_set(self):
         self.assertEqual(VALID_INSTRUCTIONS, set(INSTR_ENCODE.keys()))
@@ -49,19 +50,15 @@ class TestParseMmlang(unittest.TestCase):
         self.assertEqual(result[0], '>>')
 
     def test_collects_valid_ignores_non_valid(self):
-        # Non-instruction chars (h,e,l,o,w,r,d) are ignored;
-        # valid chars (x, >, <, l, r) are collected from EVERY position.
-        result = asm_core.parse_mmlang('#0\nx hello > world')
-        # 'x', 'l', 'l', '>', 'r', 'l' are all valid instructions
-        valid = set('>xfsbpnlr')
+        result = asm_core.parse_mmlang('#0\nx hello > worle')
+        valid = VALID_INSTRUCTIONS
         self.assertTrue(all(c in valid for c in result[0]))
         self.assertEqual(result[0].count('x'), 1)
         self.assertEqual(result[0].count('>'), 1)
 
     def test_collects_valid_instr_inside_garbage(self):
-        # foo->f,o,o (f valid), bar->b,a,r (b,r valid), n valid, baz->b,a,z (b valid)
-        result = asm_core.parse_mmlang('#0\nfoo s bar n baz')
-        valid = set('>xfsbpnlr')
+        result = asm_core.parse_mmlang('#0\nfoo s bar n baz cleap')
+        valid = VALID_INSTRUCTIONS
         self.assertTrue(all(c in valid for c in result[0]))
         self.assertIn('s', result[0])
         self.assertIn('n', result[0])
@@ -107,7 +104,7 @@ class TestAssembleAndWrite(unittest.TestCase):
         self.assertEqual(len(tapes[1]), 2 * 4)
 
     def test_assemble_roundtrip(self):
-        chars = '>xsfnblrp'
+        chars = '>xsfnblr!acd'
         tapes = asm_core.assemble(f'#0\n{chars}')
         self.assertEqual(len(tapes[0]), len(chars) * 4)
 
@@ -158,6 +155,7 @@ class TestInstructionEncoding(unittest.TestCase):
             ('>', '0000'), ('<', '0001'), ('x', '0010'), ('f', '0011'),
             ('s', '0100'), ('b', '0101'), ('p', '0110'), ('n', '0111'),
             ('l', '1000'), ('r', '1001'),
+            ('a', '1010'), ('d', '1011'), ('c', '1100'), ('!', '1101'),
         ]
         for ch, bits in samples:
             ba = make_bitarray_from_chars(ch)

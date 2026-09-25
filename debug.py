@@ -105,8 +105,7 @@ def format_data_tape(state, term_width):
     if len(dt) == 0:
         return f'{prefix}?' * min(avail, 1) + '?' * max(0, avail - 1)
 
-    total_without_cursor = len(dt) - 1
-    if total_without_cursor + 2 <= avail:
+    if len(dt) + 2 <= avail:
         return f'{prefix}{bitarray_to_str(dt[:dp])}[{bitarray_to_str(dt[dp:dp+1])}]{bitarray_to_str(dt[dp+1:])}'
 
     cursor_len = 3
@@ -141,6 +140,10 @@ def format_data_tape(state, term_width):
     return f'{prefix}{pre}{left_str}[{mid_str}]{right_str}{post}'
 
 
+def fetch_current(state):
+    return state.fetch_instr()
+
+
 def render(state):
     w = _terminal_width()
     lines = []
@@ -149,9 +152,54 @@ def render(state):
     lines.append(format_data_tape(state, w))
     lines.append(f'pc:{state.current_pc}')
     lines.append(f'dp:{state.dp}')
-    lines.append('---')
-    lines.append('press enter to continue')
+    lines.append(f'steps:{state.step_count}')
     return '\n'.join(lines)
+
+
+HELP_TEXT = """命令:
+  [enter] / n    单步执行
+  c              continue, 连续运行到下一个断点 (n) 或停机
+  r              run, 连续运行到底
+  q              quit, 退出调试器
+  h / ?          显示帮助"""
+
+
+def clear_screen():
+    print('\033[2J\033[H', end='')
+
+
+def prompt():
+    try:
+        return input('[n/c/r/q/h]> ').strip()
+    except EOFError:
+        return 'q'
+
+
+def show_state(state, banner=None):
+    clear_screen()
+    if banner:
+        print(banner)
+    print(render(state))
+
+
+def run_to_next_breakpoint(state):
+    while not state.halted:
+        if not state.step():
+            return False
+        instr = fetch_current(state)
+        if instr == 'n':
+            return True
+    return False
+
+
+def run_to_end(state, max_steps=1000000):
+    state.run(max_steps=max_steps)
+
+
+def step_one(state):
+    if state.halted:
+        return False
+    return state.step()
 
 
 def main():
@@ -162,26 +210,52 @@ def main():
 
     fname = vm_core.prompt_select(files, 'binary')
     print(f'Loading: {fname}')
+    print(f'断点触发条件: n 指令')
 
     state = vm_core.load_mmbin_from_file(fname)
 
     while not state.halted:
-        print('\033[2J\033[H', end='')
-        print(render(state))
-        try:
-            line = input()
-        except EOFError:
-            break
-        if not state.step():
-            break
+        instr = fetch_current(state)
+        is_bp = (instr == 'n')
 
-    print('\033[2J\033[H', end='')
+        banner = ''
+        if is_bp:
+            banner = f'>>> 断点: 遇到 n 指令 at tape #{state.current_label} pc={state.current_pc} <<<'
+        show_state(state, banner)
+
+        cmd = prompt()
+        if cmd in ('q', 'quit', 'exit'):
+            print('调试已退出')
+            return
+        elif cmd in ('h', '?', 'help'):
+            show_state(state, banner)
+            print(HELP_TEXT)
+            input('按回车继续...')
+            continue
+        elif cmd in ('c', 'continue'):
+            run_to_next_breakpoint(state)
+        elif cmd in ('r', 'run'):
+            run_to_end(state)
+        elif cmd in ('', 'n', 'step', 'next'):
+            step_one(state)
+        else:
+            print(f'未知命令: {cmd}')
+            show_state(state, banner)
+            print(HELP_TEXT)
+            input('按回车继续...')
+            continue
+
+    clear_screen()
     print(render(state))
-    print(f'\nProgram ended, steps executed: {state.step_count}')
+    print(f'\n程序结束, 总步数: {state.step_count}')
     if state.last_error:
-        print(f'Error: {state.last_error}')
+        print(f'错误: {state.last_error}')
     elif state.final_output is not None:
-        print(f'Final output (b instruction): {state.final_output}')
+        from run import bits_to_ascii
+        print(f'最终输出 (b 指令): {state.final_output}')
+        ascii_text = bits_to_ascii(state.final_output)
+        if ascii_text is not None:
+            print(f'ASCII 解码: {ascii_text}')
 
 
 if __name__ == '__main__':
