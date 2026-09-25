@@ -38,15 +38,15 @@ class TestInstructionTable(unittest.TestCase):
 
 class TestParseMmlang(unittest.TestCase):
     def test_repeat_syntax(self):
-        result = asm_core.parse_mmlang('#0\n>*5')
+        result = asm_core.parse_mmlang('#0\n(>)*5')
         self.assertEqual(result[0], '>>>>>')
 
     def test_repeat_syntax_multiple(self):
-        result = asm_core.parse_mmlang('#0\n>x*3')
+        result = asm_core.parse_mmlang('#0\n>(x)*3')
         self.assertEqual(result[0], '>xxx')
 
     def test_repeat_zero(self):
-        result = asm_core.parse_mmlang('#0\n>x*0>')
+        result = asm_core.parse_mmlang('#0\n(x)*0>>')
         self.assertEqual(result[0], '>>')
 
     def test_collects_valid_ignores_non_valid(self):

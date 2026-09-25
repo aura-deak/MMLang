@@ -63,20 +63,10 @@ def _expand_brackets(text):
     return text
 
 
-def _expand_old_repeat(text):
-    pattern = re.compile(r'([>xfsbpnlr!acd])\*(\d+)')
-    prev = None
-    while prev != text:
-        prev = text
-        text = pattern.sub(lambda m: m.group(1) * int(m.group(2)), text)
-    return text
-
-
 def parse_mmlang(text):
     text = text.replace('\r\n', '\n').replace('\r', '\n')
     text = _extract_constants(text)
     text = _expand_brackets(text)
-    text = _expand_old_repeat(text)
 
     tapes = {}
     current_label = None
