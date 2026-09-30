@@ -18,13 +18,13 @@
 
 ## 架构详解
 
-!\[架构图]\(main\_diagram.png null)
+![架构图](main_diagram.png)
 xmind文件在/doc下面哦
 
 <details>
 <summary>原手写稿可能更清晰，也可以参考。展开</summary>
 
-!\[原手写稿件]\(Handwritten\_Manuscript\_Logic\_Diagram.jpg null)
+![原手写稿件](Handwritten_Manuscript_Logic_Diagram.jpg)
 
 </details>
 
@@ -36,7 +36,7 @@ xmind文件在/doc下面哦
 
 ### 程序流转
 
-!\[程序流转图]\(command\_control.png null)
+![程序流转图](command_control.png)
 
 如上述，指令带本身就是一个循环结构，头尾连在一起形成循环
 
@@ -44,14 +44,14 @@ xmind文件在/doc下面哦
 
 ### 输出控制
 
-!\[输出控制图]\(output\_control.png null)
+![输出控制图](output_control.png)
 
 - 支持将数据纸带截断作为输出
 - 此外，还支持从MMcore到MMout的流式输出
 
 ### 输入控制
 
-!\[输入控制图]\(input\_control.png null)
+![输入控制图](input_control.png)
 这是较为特殊的一点。本机的输入控制不由MMcore中转。
 
 需要输入时，MMcore主动把读写头控制权交给MMin，MMin按照约定直接写入数据纸带（一般是写8格），写完后读写头停留在dp+7位置，交还读写头控制权
